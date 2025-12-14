@@ -1,0 +1,878 @@
+//////////////////////////////////////////////////////////////////////////////
+//
+// CmDateTime.ixx - Module for CmDateTime classes
+//
+//////////////////////////////////////////////////////////////////////////////
+//
+// author: 	   Eckhard Kantz
+// website:    http://wegalink.eu
+//
+//////////////////////////////////////////////////////////////////////////////
+/*
+This is FREE software
+
+Permission is hereby granted, free of charge,  to any person obtaining  a copy
+of this software and associated documentation files (the "Software"),  to deal
+in the Software without restriction, including without limitation  the  rights
+to use,  copy,  modify,  merge,  publish,  distribute, sublicense, and/or sell
+copies  of  the  Software,   and  to  permit  persons  to  whom  the  Software
+is furnished to do so, subject to the following conditions:
+
+There are no conditions imposed on the use of this software.
+
+THE SOFTWARE IS PROVIDED "AS IS",  WITHOUT  WARRANTY  OF ANY KIND,  EXPRESS OR
+IMPLIED,  INCLUDING  BUT  NOT  LIMITED  TO  THE  WARRANTIES OF MERCHANTABILITY,
+FITNESS  FOR  A  PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS  OR  COPYRIGHT  HOLDERS  BE  LIABLE  FOR  ANY CLAIM,  DAMAGES OR OTHER
+LIABILITY,  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,  ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  THE
+SOFTWARE.
+*/
+
+module;
+
+#include "Services/Basic/Modules/CmTypes.h"
+
+export module CmBasic:CmDateTime;
+
+export import :CmException;
+
+
+export namespace Cosmos
+{
+	// forward declaration
+	class CmString;
+
+	class CmDateTime
+	{
+	public:
+		// Unit test
+		static bool testCmTime();
+
+		// Systime access function (seconds)
+		static double getSysClock();
+
+		// Systime access function (nanoseconds)
+		static int64 getSysClockNanoSec(bool _isPerformanceCounter = true);
+
+		// Time conversion
+		static int64  getNanoSec(const char* _szDateTime);
+		static CmString getTimeUTC(uint32 _uDateTime = 0, int32 _nDayTime = -1, bool _isFilename = false);
+
+		// Timestamp, e.g. as component for filenames
+		static CmString getTimestamp(int64 _Timestamp, int32 _TimeOffset = 0, bool _WithTime = false, bool _WithMilliSec = false);
+
+		// Sidereal time GMST in [pico deg]
+		static uint64  getGMST(int64 _nUTC);
+
+		//Constructor and Destructor
+		CmDateTime();
+		virtual ~CmDateTime();
+
+	private:
+#ifdef MSVS
+		static const uint64 u64J2000 = 0x0D2374199AEA8000;
+		static const uint64 u64GMST_A = 0x0000FF13D3880BD0;
+		static const uint64 u64GMST_B = 0x000148508547C092;
+		static const uint64 u64GMST_M = 0x0001476B081E8000;
+#else
+		static const uint64 u64J2000 = 0x0D2374199AEA8000ull;
+		static const uint64 u64GMST_A = 0x0000FF13D3880BD0ull;
+		static const uint64 u64GMST_B = 0x000148508547C092ull;
+		static const uint64 u64GMST_M = 0x0001476B081E8000ull;
+#endif
+		static const uint64 u64MilliArcSec = 0x0000000000043D12;
+	};
+
+	/** CmTimestamp
+	 *  This class represents a timestamp measured in nano-seconds
+	 */
+	class CmTimestamp : public CmDateTime
+	{
+	public:
+		CmTimestamp();
+		CmTimestamp(int64 Timestamp_ns);
+		~CmTimestamp();
+
+		/** setTimestamp.
+		 *  A timestamp value will be assigned and converted if necessary.
+		 */
+		void setTimestamp(int64 _Timestamp_ns);
+		void setTimestamp(uint64 _Timestamp_ns);
+
+		/** getTimestamp.
+		 *  Currently assigned timestamp value will be returned.
+		 */
+		int64 getTimestamp_ns();
+		int64 getTimestamp_us();
+		int64 getTimestamp_ms();
+		int32 getTimestamp_s();
+		// return double [s]
+		double getTimestamp();
+		// get timestamp components
+		struct tm& getDateTime(uint64 _Timestamp_s = 0);
+		int32 getYear();			// 1970..
+		int32 getMonth();			// 1..12
+		int32 getDay();				// 1..31
+		int32 getHour();			// 0..23
+		int32 getMinute();			// 0..59
+		int32 getSecond();			// 0..59
+		int32 getDayOfWeek();		// 1..7
+		int32 getDayOfYear();		// 1..366
+
+		/** getDateTimestamp.
+		*  A timestamp will be created as requested by the date's components.
+		*  If all input parameter are zero then the timestamp refers to current date.
+		*/
+		int64 getDateTimestamp(int32 _Year = 0, int32 _Month = 0, int32 _Day = 0, int32 _Hour = 0, int32 _Minute = 0, int32 _Second = 0);
+
+		/** isDST. DST (day light saving) will be determined */
+		bool getDST(int32 _Year, int32 _Month, int32 _Day, int32 _Hour);
+		bool getDST();
+
+		/** operator
+	    *  Some operations with timestamps will be performed
+	    */
+		int64 operator+(int _Timestamp_s);
+		int64 operator-(int _Timestamp_s);
+		int64 operator+=(int _Period_s);
+		int64 operator-=(int _Period_s);
+
+		/** getDataRate.
+		 *  An average data rate will be estimated from the difference of
+		 *  current timestamp and the timestamp on initialization.
+		 */
+		double getDataRate(int _DataLength);
+
+		/** start/getRuntime.
+		*   A precise runtime measurement based on performance counter will be performed.
+		*   The start point is either from startRuntime() or from last getRuntime().
+		*/
+		void startRuntime();
+		double getRuntime(bool _isSetNow = true);
+		int getRuntime_s(bool _isSetNow = true);
+		int getRuntime_ms(bool _isSetNow = true);
+		int getRuntime_us(bool _isSetNow = true);
+		int getRuntime_ns(bool _isSetNow = true);
+
+	private:
+		// current timestamp
+		int64 Timestamp_ns;
+
+	private:
+		// timestamp components
+		struct tm stDateTime;
+		bool isDST;
+
+	private:
+		// runtime evaluation
+		uint64 RuntimeBegin;
+		uint64 RuntimeEnd;
+	};
+
+	// The benchmark class supports running benchmarks
+	class MBenchmark
+	{
+	private:
+		// Time source
+		CmDateTime mDateTime;
+		// Time variables
+		int64 n64CurTime;
+		int64 n64TrialEnd;
+		int64 n64TrialPeriod;
+		// Result variables
+		int64 n64Duration;
+		int64 n64DurationMin;
+		int64 n64ZeroOffset;
+		int64 n64ZeroOffsetMin;
+		// Loop variables
+		int32 nLoops;
+		int32 nCurLoop;
+		int32 nCycles;
+		int32 nCurCycle;
+		int32 nTrials;
+		int32 nCurTrial;
+		// Dummy function
+		bool dummy();
+	public:
+		// Running and evaluating a benchmark
+		bool run();
+		CmString info(int64 _nLocal = 0, int64 _n64Divisor = 1);
+
+		// Constructors and destructor
+		MBenchmark(int32 _nLoops = 1000, int32 _nTrialPeriodMilliSec = 100, int32 _nTrials = 10);
+		~MBenchmark();
+	};
+
+}  // namespace Cosmos
+
+using namespace Cosmos;
+
+//--------------------------------------------------------------------
+// CmDateTime class
+//--------------------------------------------------------------------
+CmDateTime::CmDateTime()
+{
+
+}
+
+CmDateTime::~CmDateTime()
+{
+
+}
+
+bool CmDateTime::testCmTime()
+{
+	uint64 u64UTC;
+	uint64 u64GMST;
+	int32  deltaMilliArcSec;
+
+#define DATETIME_TIMESTAMP1		"2005-03-28 18:00:00"
+#define DATETIME_TIMESTAMP2		"2038-01-01 12:00:00"
+#ifdef MSVS
+#define DATETIME_PICO_DEG1		96250441924342
+#define DATETIME_PICO_DEG2		281246062475200
+#else
+#define DATETIME_PICO_DEG1		96250441924342ull
+#define DATETIME_PICO_DEG2		281246062475200ull
+#endif
+
+	u64UTC = getNanoSec(DATETIME_TIMESTAMP1);	// 06h25m00.106 = 96.250441924342 pico deg (Scientific calculator)
+	// 06h25m00.053 = 96.250222119888 pico deg (this algorithm)
+	// 06h25m00     = 96.25 deg					http://www.go.ednet.ns.ca/~larry/orbits/jsjdetst.html
+	// 06h25m00     = 96.25 deg					http://www.jgiesen.de/astro/astroJS/sunriseJS/
+	u64GMST = getGMST(u64UTC);
+	deltaMilliArcSec = abs((int32)((u64GMST - DATETIME_PICO_DEG1) / u64MilliArcSec));
+	u64UTC = getNanoSec(DATETIME_TIMESTAMP2);
+	u64GMST = getGMST(u64UTC);
+	deltaMilliArcSec = abs((int32)((u64GMST - DATETIME_PICO_DEG2) / u64MilliArcSec));
+
+	// CmTimestamp test
+	const uint32 TestTime = 1524562000; // 2018-04-24 09:26:40 UTC, Tuesday (=3), 114 day of year 
+	CmTimestamp TestTimestamp(TestTime * DATETIME_NANOSECONDS);
+	if (TestTimestamp.getYear() != 2018) return false;
+	if (TestTimestamp.getMonth() != 4) return false;
+	if (TestTimestamp.getDay() != 24) return false;
+	if (TestTimestamp.getHour() != 9) return false;
+	if (TestTimestamp.getMinute() != 26) return false;
+	if (TestTimestamp.getSecond() != 40) return false;
+	if (TestTimestamp.getDayOfWeek() != 3) return false;
+	if (TestTimestamp.getDayOfYear() != 114) return false;
+
+	return true;
+}
+
+double CmDateTime::getSysClock()
+{
+	return double(getSysClockNanoSec(false)) / DATETIME_NANOSECONDS;
+}
+
+// Systime access function (nanoseconds)
+int64 CmDateTime::getSysClockNanoSec(bool _isPerformanceCounter)
+{
+	if (_isPerformanceCounter) {
+		uint64 Ticks = 0;
+		uint64 Frequency = 0;
+		QueryPerformanceCounter((LARGE_INTEGER*)&Ticks);
+		QueryPerformanceFrequency((LARGE_INTEGER*)&Frequency);
+
+		double Now = (double)Ticks * DATETIME_NANOSECONDS;
+		Now /= Frequency;
+
+		return (int64)Now;
+	}
+	else {
+#ifndef WIN32
+		struct timeval  stTimeValue;
+		struct timezone stTimeZone;
+		gettimeofday(&stTimeValue, &stTimeZone);
+		return (((int64)1000000000 * stTimeValue.tv_sec) + (int64)1000 * stTimeValue.tv_usec);
+#else
+		struct timeb timebuffer;
+#ifdef MSVS
+		_ftime_s(&timebuffer);
+#else
+		ftime(&timebuffer);
+#endif
+
+		return (int64)1000000 * ((int64)1000 * timebuffer.time + timebuffer.millitm);
+#endif
+	}
+}
+
+// Time conversion
+int64 CmDateTime::getNanoSec(const char* szDateTime)
+{
+#define TIMEZONE 60*60
+	CmString  mDateTime(szDateTime);
+	CmMString mNum(&mDateTime, CmString(" -_:.cdehilmnostu").getText());
+
+	// Date/time components
+	time_t	  nTime;
+	int32     nMilliSeconds;
+	struct tm stDateTime;
+	stDateTime.tm_isdst = 0;
+	// Year
+	mNum.resetPosition();
+	if (NULL == mNum.getNextDelimitedString()) {
+		throw; // CmException("Invalid year");
+	}
+	stDateTime.tm_year = (int32)(mNum.getNumAsUint64() - 1900);
+	// Month
+	if (NULL == mNum.getNextDelimitedString()) {
+		throw; // CmException("Invalid month");
+	}
+	stDateTime.tm_mon = (int32)(mNum.getNumAsUint64() - 1);
+	// Day
+	if (NULL == mNum.getNextDelimitedString()) {
+		throw; // CmException("Invalid day");
+	}
+	stDateTime.tm_mday = (int32)mNum.getNumAsUint64();
+	// Hour
+	if (NULL == mNum.getNextDelimitedString()) {
+		throw; // CmException("Invalid hour");
+	}
+	stDateTime.tm_hour = (int32)mNum.getNumAsUint64();
+	// Minute
+	if (NULL == mNum.getNextDelimitedString()) {
+		throw; // CmException("Invalid minute");
+	}
+	stDateTime.tm_min = (int32)mNum.getNumAsUint64();
+	// Second
+	if (NULL == mNum.getNextDelimitedString()) {
+		throw; // CmException("Invalid second");
+	}
+	stDateTime.tm_sec = (int32)mNum.getNumAsUint64();
+	// Millisecond
+	if (NULL == mNum.getNextDelimitedString()) {
+		nMilliSeconds = 0;
+	}
+	else {
+		nMilliSeconds = (int32)mNum.getNumAsUint64();
+	}
+	// Convert
+	if (-1 == (nTime = mktime(&stDateTime))) {
+		throw; // CmException("Time not recognized", szDateTime);
+	}
+	return (((int64)(nTime + TIMEZONE) * 1000) + nMilliSeconds) * 1000000;
+}
+
+CmString CmDateTime::getTimeUTC(uint32 _uDateTime, int32 _nDayTime, bool _isFilename)
+{
+	if (0 == _uDateTime) {
+		_uDateTime = (uint32)time(NULL);
+	}
+
+	// Adjust day time (negative = current time)
+	if (_nDayTime >= 0)
+		_uDateTime += _nDayTime - _uDateTime % (int32)(TIMEBASE_DAILY / TIMEBASE_SECONDS);
+
+	struct tm stDateTime;
+	struct tm* pDateTime = &stDateTime;
+	int64 u64DateTime = _uDateTime;
+	gmtime_s(pDateTime, (time_t*)&u64DateTime);
+	char achUTC[20];
+	if (_isFilename) {
+		SPRINTF9(achUTC, sizeof(achUTC), "%4u-%02u-%02u_%02u-%02u-%02u",
+			pDateTime->tm_year + 1900,
+			pDateTime->tm_mon + 1,
+			pDateTime->tm_mday,
+			pDateTime->tm_hour,
+			pDateTime->tm_min,
+			pDateTime->tm_sec);
+	}
+	else {
+		SPRINTF9(achUTC, sizeof(achUTC), "%4u-%02u-%02u %02u:%02u:%02u",
+			pDateTime->tm_year + 1900,
+			pDateTime->tm_mon + 1,
+			pDateTime->tm_mday,
+			pDateTime->tm_hour,
+			pDateTime->tm_min,
+			pDateTime->tm_sec);
+	}
+
+	return CmString(achUTC);
+}
+
+CmString CmDateTime::getTimestamp(int64 _Timestamp, int32 _TimeOffset, bool _WithTime, bool _WithMilliSec)
+{
+	char achUTC[256];
+	int64 Timestamp_s = 0;
+	int64 Timestamp_ms = 0;
+
+	// Generate timestamp [sec.]
+	if (0 == _Timestamp) {
+		Timestamp_s = getSysClockNanoSec() / DATETIME_NANOSECONDS;
+	}
+	else {
+		Timestamp_s = (_Timestamp / TIMEBASE_SECONDS);
+		Timestamp_ms = (_Timestamp - (Timestamp_s * TIMEBASE_SECONDS)) / TIMEBASE_MILLISECONDS;
+	}
+
+	// Accept a timestamp offset
+	Timestamp_s += _TimeOffset;
+
+	// Calculate timestamp components
+	struct tm stDateTime = { 0 };
+	struct tm* pDateTime = &stDateTime;
+	if (0 != _gmtime64_s(pDateTime, (const time_t*)&Timestamp_s)) {
+		// time conversion failed
+		memset(&stDateTime, 0, sizeof(stDateTime));
+		stDateTime.tm_sec = Timestamp_s % 60;
+		stDateTime.tm_min = (Timestamp_s / 60) % 60;
+		stDateTime.tm_hour = (Timestamp_s / 60) % 24;
+	}
+
+	// Generate a timestamp string
+	if (true == _WithTime && false == _WithMilliSec)
+	{
+		SPRINTF9(achUTC, sizeof(achUTC), "%4u-%02u-%02u_%02u-%02u-%02u",
+			pDateTime->tm_year + 1900,
+			pDateTime->tm_mon + 1,
+			pDateTime->tm_mday,
+			pDateTime->tm_hour,
+			pDateTime->tm_min,
+			pDateTime->tm_sec);
+	}
+	else
+		if (true == _WithTime && true == _WithMilliSec)
+		{
+			SPRINTF7(achUTC, sizeof(achUTC), "%02u-%02u-%02u.%03u",
+				pDateTime->tm_hour,
+				pDateTime->tm_min,
+				pDateTime->tm_sec,
+				(int)Timestamp_ms);
+		}
+		else
+		{
+			SPRINTF6(achUTC, sizeof(achUTC), "%4u-%02u-%02u",
+				pDateTime->tm_year + 1900,
+				pDateTime->tm_mon + 1,
+				pDateTime->tm_mday);
+		}
+
+	return CmString(achUTC);
+}
+
+
+uint64 CmDateTime::getGMST(int64 _n64UTC)
+{
+	// GMST = 280,460618370000 + 360,985647366290 * d
+	// where
+	// d = UT days since J2000.0, including parts of a day
+	// http://www.xylem.f2s.com/kepler/sidereal.htm
+	//
+	// 360985647366290 = 0x000148508547C092	[pico deg]
+	// 280460618370000 = 0x0000FF13D3880BD0 [pico deg]
+	// 360000000000000 = 0x0001476B081E8000 [pico deg]
+	//
+	// J2000 = ((30*365+7)*24+12)*60*60*1000*1000*1000
+	//       = 946728000000000000
+	//		 = 0x0D2374199AEA8000
+	//
+	// MilliArcSec = 1000*1000*1000*1000 / (60*60*1000)
+	//			   = 277778
+	//		       = 0x0000000000043D12
+	//
+	// Remarks: Implemented accuracy is about 20 arc sec
+	//			in the supported period J2000 +/- 136.
+	//			If needed, this can be improved by doing
+	//			the multiplication in two parts, a lower
+	//			part and a higher part.
+	//
+#define OVERFLOW_PREVENTION 17
+	int64  n64Sec2000;
+	uint64 u64GMST;
+
+	// Seconds till epoche 2000 (max +/- 136 years
+
+	// TODO
+	n64Sec2000 = (_n64UTC - u64J2000) / (1000 * 1000 * 1000);
+	/*
+		if (abs64(n64Sec2000) > (uint64)MAX_UINT32){
+			throw CmException("Date exceeded range: ",(uint32)abs64(n64Sec2000));
+		}
+	*/
+	// sidereal progress since J2000
+	u64GMST = (u64GMST_B >> OVERFLOW_PREVENTION) * n64Sec2000;		// this is the critical multiplication
+	u64GMST /= (24 * 60 * 60);
+	u64GMST <<= OVERFLOW_PREVENTION;
+	u64GMST += u64GMST_A;
+	u64GMST %= u64GMST_M;
+	return u64GMST;
+}
+
+//--------------------------------------------------------------------
+// CmTimestamp class
+//--------------------------------------------------------------------
+CmTimestamp::CmTimestamp()
+{
+	// initialize timestamp with current time
+	Timestamp_ns = getSysClockNanoSec(false);
+
+	// initialize runtime workspace
+	RuntimeEnd = 0;
+	startRuntime();
+}
+
+CmTimestamp::CmTimestamp(int64 _Timestamp_ns)
+{
+	setTimestamp(_Timestamp_ns);
+
+	// clear runtime workspace
+	RuntimeBegin = 0;
+	RuntimeEnd = 0;
+}
+
+CmTimestamp::~CmTimestamp()
+{
+
+}
+
+void CmTimestamp::setTimestamp(int64 _Timestamp_ns)
+{
+	Timestamp_ns = _Timestamp_ns;
+}
+
+void CmTimestamp::setTimestamp(uint64 _Timestamp_ns)
+{
+	Timestamp_ns = _Timestamp_ns;
+}
+
+int64 CmTimestamp::getTimestamp_ns()
+{
+	return Timestamp_ns;
+}
+
+int64 CmTimestamp::getTimestamp_us()
+{
+	return Timestamp_ns / 1000;
+}
+
+int64 CmTimestamp::getTimestamp_ms()
+{
+	return Timestamp_ns / (1000 * 1000);
+}
+
+int32 CmTimestamp::getTimestamp_s()
+{
+	return (int)(Timestamp_ns / DATETIME_NANOSECONDS);
+}
+double CmTimestamp::getTimestamp()
+{
+	double Timestamp = (double)Timestamp_ns;
+	Timestamp /= DATETIME_NANOSECONDS;
+
+	return Timestamp;
+}
+struct tm& CmTimestamp::getDateTime(uint64 _Timestamp_s)
+{
+	// take current time in case of a zero timestamp
+	_Timestamp_s == 0 ? _Timestamp_s = time(NULL) : 0;
+
+	// decompose timestamp	
+	if (0 != _gmtime64_s(&stDateTime, (const time_t*)(&_Timestamp_s))) {
+		// time conversion failed
+		memset(&stDateTime, 0, sizeof(stDateTime));
+		// estimate seconds, minutes and hours
+		stDateTime.tm_sec = _Timestamp_s % 60;
+		stDateTime.tm_min = (_Timestamp_s / 60) % 60;
+		stDateTime.tm_hour = (_Timestamp_s / 3600) % 24;
+	}
+	return stDateTime;
+}
+int32 CmTimestamp::getYear()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_year + 1900;
+}
+int32 CmTimestamp::getMonth()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_mon + 1;
+}
+int32 CmTimestamp::getDay()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_mday;
+}
+int32 CmTimestamp::getHour()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_hour;
+}
+int32 CmTimestamp::getMinute()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_min;
+}
+int32 CmTimestamp::getSecond()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_sec;
+}
+int32 CmTimestamp::getDayOfWeek()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_wday + 1;
+}
+int32 CmTimestamp::getDayOfYear()
+{
+	return getDateTime((uint32)(Timestamp_ns / DATETIME_NANOSECONDS)).tm_yday + 1;
+}
+
+int64 CmTimestamp::getDateTimestamp(int32 _Year, int32 _Month, int32 _Day, int32 _Hour, int32 _Minute, int32 _Second)
+{
+	// check whether current time was requested
+	bool isCurrentTime = _Year == 0 && _Month == 0 && _Day == 0 && _Hour == 0 && _Minute == 0 && _Second == 0 ? true : false;
+
+	// time components
+	struct tm Time;
+	Time.tm_year = _Year < 1900 ? 0 : _Year - 1900;
+	Time.tm_mon = _Month <= 0 ? 0 : _Month <= 12 ? _Month - 1 : 0;
+	Time.tm_mday = _Day <= 0 ? 1 : _Day <= 31 ? _Day : 1;
+	Time.tm_hour = _Hour <= 0 ? 0 : _Hour <= 23 ? _Hour : 0;
+	Time.tm_min = _Minute <= 0 ? 0 : _Minute <= 59 ? _Minute : 0;
+	Time.tm_sec = _Second <= 0 ? 0 : _Second <= 60 ? _Second : 0; // allow for leap seconds
+	// determine whether DST is on
+	Time.tm_isdst = getDST(Time.tm_year + 1900, Time.tm_mon + 1, Time.tm_mday, Time.tm_hour) ? 1 : 0;
+	// generate timestamp 
+	int64 DayTimestamp = isCurrentTime ? _time64(NULL) : _mktime64(&Time);
+
+	// for current date, go back to last midnight 
+	DayTimestamp -= isCurrentTime ? DayTimestamp % SECONDS_PER_DAY : 0;
+	// convert to nanoseconds
+	Timestamp_ns = DayTimestamp * DATETIME_NANOSECONDS;
+
+	return Timestamp_ns;
+}
+
+bool CmTimestamp::getDST(int32 _Year, int32 _Month, int32 _Day, int32 _Hour)
+{
+	const int32 DST_ON_2020 = 26, DST_OFF_2020 = 25;  //ON in March, OFF in October
+
+	// Note: There is an ambiguity for DST_OFF for _Hour == 2, it will always be set to _isDST = true
+	switch (_Year) {
+	case 2020: isDST = _Month < 3 ? false : _Month > 10 ? false : _Month == 3 ? (_Day < DST_ON_2020 ? false : _Day > DST_ON_2020 ? true : _Hour < 2 ? false : true) : _Month == 10 ? (_Day < DST_OFF_2020 ? true : _Day > DST_OFF_2020 ? false : _Hour < 2 ? true : false) : true; break;
+	default: isDST = _Month <= 3 ? false : _Month > 10 ? false : true; break;
+	}
+	return isDST;
+}
+bool CmTimestamp::getDST()
+{
+	return isDST;
+}
+
+int64 CmTimestamp::operator+(int _Timestamp_s)
+{
+	return Timestamp_ns + _Timestamp_s * DATETIME_NANOSECONDS;
+}
+
+int64 CmTimestamp::operator-(int _Timestamp_s)
+{
+	return Timestamp_ns - _Timestamp_s * DATETIME_NANOSECONDS;
+}
+
+int64 CmTimestamp::operator+=(int _Period_s)
+{
+	Timestamp_ns += _Period_s * DATETIME_NANOSECONDS;
+	return Timestamp_ns;
+}
+
+int64 CmTimestamp::operator-=(int _Period_s)
+{
+	Timestamp_ns -= _Period_s * DATETIME_NANOSECONDS;
+	return Timestamp_ns;
+}
+
+double CmTimestamp::getDataRate(int _DataLength)
+{
+	// get current timestamp
+	CmTimestamp Now;
+
+	// estimate data rate
+	double DataRate = Now.getTimestamp();		// end time
+	DataRate -= this->getTimestamp();				// minus start time = duration
+	if (DataRate != 0)
+		DataRate = _DataLength / DataRate;			// amount of data / duration
+
+	return DataRate;
+}
+
+void CmTimestamp::startRuntime()
+{
+	QueryPerformanceCounter((LARGE_INTEGER*)&RuntimeBegin);
+}
+
+double CmTimestamp::getRuntime(bool _isSetNow)
+{
+	uint64 Frequency;
+	QueryPerformanceCounter((LARGE_INTEGER*)&RuntimeEnd);
+	QueryPerformanceFrequency((LARGE_INTEGER*)&Frequency);
+
+	double Runtime = 0;
+	if (0 != Frequency && 0 != RuntimeBegin) {
+		Runtime = (double)(RuntimeEnd - RuntimeBegin) / double(Frequency);
+	}
+	// make current timestamp the new starting point
+	_isSetNow ? RuntimeBegin = RuntimeEnd : 0;
+
+	return Runtime;
+}
+int CmTimestamp::getRuntime_s(bool _isSetNow)
+{
+	return (int)getRuntime(_isSetNow);
+}
+int CmTimestamp::getRuntime_ms(bool _isSetNow)
+{
+	return (int)(getRuntime(_isSetNow) * 1000);
+}
+int CmTimestamp::getRuntime_us(bool _isSetNow)
+{
+	return (int)(getRuntime(_isSetNow) * 1000 * 1000);
+}
+int CmTimestamp::getRuntime_ns(bool _isSetNow)
+{
+	return (int)(getRuntime(_isSetNow) * 1000 * 1000 * 1000);
+}
+
+//--------------------------------------------------------------------
+// MBenchmark class
+//--------------------------------------------------------------------
+#define TOLERANCE	  150
+#define PRECISION	  10L
+#define RANGE_MILLI   1000000L
+#define RANGE_MICRO   1000L
+#define RANGE_MIN     100L
+#define RANGE_MAX     1000000L
+
+MBenchmark::MBenchmark(int32 _nLoops, int32 _nTrialPeriodMilliSec, int32 _nTrials)
+{
+	nLoops = _nLoops > 0 ? _nLoops : 1;
+	nTrials = _nTrials > 0 ? _nTrials : 1;
+	n64TrialPeriod = _nTrialPeriodMilliSec > 0 ? _nTrialPeriodMilliSec : 0;
+	n64TrialPeriod *= 1000000; //convert to nanoseconds
+	// Set start condition
+	nCurLoop = 0;
+	nCurTrial = 0;
+}
+MBenchmark::~MBenchmark()
+{
+
+}
+bool MBenchmark::run()
+{
+	// Check loop status
+	if (--nCurLoop > 0) {
+		return true;
+	}
+	// Check for start condition
+	if (0 == nCurTrial) {
+		// Initiate new run
+		nCycles = 1;
+		nCurLoop = nLoops;
+		nCurTrial = nTrials;
+		n64DurationMin = MAX_INT64;
+		n64ZeroOffsetMin = MAX_INT64;
+		n64TrialEnd = mDateTime.getSysClockNanoSec() + n64TrialPeriod;
+		return true;
+	}
+	// Check for trial end
+	if (n64TrialEnd > (n64CurTime = mDateTime.getSysClockNanoSec())) {
+		nCycles++;
+		nCurLoop = nLoops;
+		return true;
+	}
+	else {
+		// Evaluate trial results
+		if (nCycles * nLoops != 0) {
+			n64Duration = (n64TrialPeriod + n64CurTime - n64TrialEnd) * PRECISION / (nCycles * nLoops);
+			// Evaluate empty loop (zero offset)
+			nCurLoop = nLoops;
+			nCurCycle = nCycles;
+			n64CurTime = mDateTime.getSysClockNanoSec();
+			while (dummy());
+			n64TrialEnd = mDateTime.getSysClockNanoSec();
+			n64ZeroOffset = (n64TrialEnd - n64CurTime) * PRECISION / (nCycles * nLoops);
+		}
+		else {
+			n64Duration = -1;
+		}
+		if (n64Duration > 0 && n64Duration < n64DurationMin) {
+			n64DurationMin = n64Duration;
+		}
+		if (n64ZeroOffset >= 0 && n64ZeroOffset < n64ZeroOffsetMin) {
+			n64ZeroOffsetMin = n64ZeroOffset;
+		}
+		if (--nCurTrial > 0) {
+			nCycles = 1;
+			nCurLoop = nLoops;
+			n64DurationMin = MAX_INT64;
+			n64ZeroOffsetMin = MAX_INT64;
+			n64TrialEnd = mDateTime.getSysClockNanoSec() + n64TrialPeriod;
+			return true;
+		}
+		return false;
+	}
+}
+bool MBenchmark::dummy()
+{
+	if (nCurLoop-- > 0) {
+		return true;
+	}
+	if (nCurCycle-- > 0) {
+		nCurLoop = nLoops;
+		return true;
+	}
+	return false;
+}
+CmString MBenchmark::info(int64 _n64Local, int64 _n64Divisor)
+{
+	int8 achInfo[1000];
+	int8 achFlag[1000];
+
+	if (_n64Divisor > 1) {
+		n64DurationMin = (n64DurationMin - n64ZeroOffsetMin) / _n64Divisor;
+	}
+	else {
+		n64DurationMin = n64DurationMin - n64ZeroOffsetMin;
+	}
+	if ((int32)n64DurationMin < (int32)_n64Local) {
+		SPRINTF3(achFlag, sizeof(achFlag), "--");
+	}
+	else if (100 * (int32)n64DurationMin > TOLERANCE * (int32)_n64Local) {
+		SPRINTF3(achFlag, sizeof(achFlag), "++");
+	}
+	else {
+		SPRINTF3(achFlag, sizeof(achFlag), " ");
+	}
+	if ((int32)n64DurationMin <= 0) {
+		// Invalid
+		SPRINTF3(achInfo, sizeof(achInfo), "       n.a.         ");
+	}
+	else if ((int32)(n64DurationMin / (PRECISION * RANGE_MILLI)) > RANGE_MAX) {
+		// Range exceeded
+		SPRINTF3(achInfo, sizeof(achInfo), "    - out of range -");
+	}
+	else if ((int32)(n64DurationMin / (PRECISION * RANGE_MILLI)) >= RANGE_MIN &&
+		(int32)(n64DurationMin / RANGE_MILLI) >= 0) {
+		// Millisecond range
+		SPRINTF6(achInfo, sizeof(achInfo), "%6u ms ref:%6u %s",
+			(int32)(n64DurationMin / (PRECISION * RANGE_MILLI)),
+			(int32)(_n64Local / (PRECISION * RANGE_MILLI)),
+			achFlag);
+	}
+	else if ((int32)(n64DurationMin / (PRECISION * RANGE_MICRO)) >= RANGE_MIN &&
+		(int32)(n64DurationMin / (RANGE_MICRO * RANGE_MIN)) >= 0) {
+		// Microsecond range
+		SPRINTF6(achInfo, sizeof(achInfo), "%6u us ref:%6u %s",
+			(int32)(n64DurationMin / (PRECISION * RANGE_MICRO)),
+			(int32)(_n64Local / (PRECISION * RANGE_MICRO)),
+			achFlag);
+	}
+	else if ((int32)(n64DurationMin / PRECISION) >= RANGE_MIN) {
+		// Nanosecond range
+		SPRINTF6(achInfo, sizeof(achInfo), "%6u ns ref:%6u %s",
+			(int32)(n64DurationMin / PRECISION),
+			(int32)(_n64Local / PRECISION),
+			achFlag);
+	}
+	else {
+		// Sub-nanosecond range
+		SPRINTF6(achInfo, sizeof(achInfo), "%6.1f ns ref:%6.1f %s", (float)n64DurationMin / PRECISION, (float)_n64Local / PRECISION, achFlag);
+	}
+	return CmString(achInfo);
+}

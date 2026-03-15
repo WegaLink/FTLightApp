@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//WEGALINK//DTD HTML 4.0+ Frameset//EN" "wegalinkframes.dtd">
+<!--DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Frameset//EN"-->
+<html lang=en>
+<head>
+<title> BabelTower </title>
+<link rev="made" href="http:/ftlight.one">
+<meta name="robots" content="index">
+<meta name="robots" content="follow">
+<meta name="description" lang="en" content= "">
+<meta name="author" content="Eckhard Kantz">
+<meta name="keywords" lang="en" content=
+  "Babel software development C++ Unix">
+<meta name="date" lang="en" content="2023-08-05">
+</head>
+<body bgcolor=#F0F0F0 text=#000000 style="background-image:url(./img/ftlight_background.jpg); background-attachment:fixed;background-repeat:repeat;">
+<font size=4>
+ 
+<img src="./img/languages.png" border=0>
+
+<hr>
+<center><h1>&quot;Babel Tower&quot; project</h1></center>
+<hr>
+<a href= "https://www.science.org/doi/10.1126/science.abg0818#fa">
+<img src="https://www.science.org/cms/10.1126/science.abg0818/asset/ca8599bc-ef5a-471f-a37a-eb62b94b2278/assets/images/large/science.abg0818-fa.jpg" width="1200" border=0></a>
+<br>Source: <a href= "https://www.science.org/doi/10.1126/science.abg0818#fa">www.science.org/doi/10.1126/science.abg0818#fa</a>
+<hr>
+<h2>Objective</h2>
+<p>The &quot;Babel Tower&quot; project is supposed to deliver a language technology that allows to communicate
+on Earth in all currently spoken languages without any barriers.
+
+<p>In general, the picture reminds to the &quot;Tower of Babel&quot; story, doesn&lsquo;t it.
+
+<h2>Concept</h2>
+<p>The &quot;Babel Tower&quot; project aims at reversing the language divergence process 
+that happened on Earth. Current approach is to generate as a first step a language technology 
+that instantly translates from any of currently actively spoken languages into each of those 
+languages dependent on what language the user of that envisioned language technology is familiar 
+with. 
+
+<p>The hardware implementation would be a headset that analyses the sound arriving in the 
+microphone from nearby speakers and that would cancel out the sound components of that speaker 
+and it would replace it with the translated information stream while preserving the pitch and 
+speaker voice characteristics. 
+
+<p>The basic linguistic concept is to translate the source language into an intermediate language 
+in a first step and to continue with translating the intermediate language into the target 
+language in a second step. While it is well understood from a linguistic point of view that the 
+ultimate highest quality could possibly be accomplished only when translating a source language 
+directly into a target language, that approach would result in far more than 10000 translation 
+directions of language pairs.
+
+<p>Following the intermediate language approach, the effort could be reduced to twice the number 
+of actively spoken languages on Earth today. That looks like a good trade-off which could deliver 
+intended result in a much shorter time while still maintaining a high quality level, despite of 
+using an intermediate language. Obviously, the intermediate language has to be well chosen and it 
+should offer all language concepts that can be found in the source/target languages.
+
+<p>What intermediate language would serve the best purpose? Has it still to be invented in order 
+to meet mentioned requirements or does there exist already a good candidate language for the purpose?
+
+<h2>Intermediate language</h2>
+<p><strong>Sanskrit</strong> has actually been discussed already as a possible &quot;language container&quot;
+for other languages. 
+
+<p>One could leave out the Sandhi rules since those would come into play only for spoken <strong>Sanskrit</strong>.
+
+<p>An advantage of <strong>Sanskrit</strong> may be that it is a still spoken and an official language in Karnataka in India.
+
+<p>Yoda the proposal appreciated has :)
+
+<p>SO THE PROJECT IS SUPPOSED TO GENERATE LANGUAGE INTERFACES TO AND FROM <strong>SANSKRIT</strong> FOR ALL SPOKEN 
+LANGUAGES ON EARTH.
+
+<p>Please feel free to contribute to the project if you want to.
+
+<h2>Project structure - language dependent tasks</h2>
+
+<h3> Syntax rules </h3>
+
+<p>The rules for generating valid sentences and statements have to be generated in a suitable form for
+automatic language recognition and for subsequent machine translation to and from chosen intermediate language.
+
+<h3> Dictionaries and translation memories </h3>
+
+<p>High quality translations require translation templates that are derived from high quality sources
+like books that have been translated to other languages. The result will be dictionaries and translation 
+memories that are being used for translating on demand any text from and to chosen intermediate language.
+
+<h2> Project structure - general tasks</h3>
+
+<h3> Hardware </h3>
+
+<p> There are three major components that the system will be made from:
+<ul><li> language (voice) recognition
+</li><li> context dependent translation service
+</li><li> voice sythesis
+</li></ul>
+
+<p> Language recognition requires a decomposition of the voice signal from a microphone into 
+frequency patterns. That task will be supported by running a Fast Fourier Transform (FFT) on 
+the input signal which will be implemented on a FPGA circuit. Resulting patterns may be analyzed
+further on-chip or can be forwarded to a connected smartphone which sends those patterns to a
+server in the internet for final language recognition and decomposition into words and sentences 
+in one or multiple source languages that are to be translated into target language in a next step.
+
+<p> The context dependent translation service may partly be implemented locally on specialized 
+circuits for some frequently used languages or by servers in the Internet that are capable to 
+provide for a round trip signal delay less than about 100 ms in order to allow for live translations 
+for less frequently used languages.
+
+<p> A composition of the output audio signal will be based on the input frequency patterns. Those
+will be mixed with the intended target language audio stream such that the frequency components of
+the source language will be replaced by target language components with a matching pitch and voice 
+characteristics of the original signal.
+
+<h3> Software </h3>
+
+<p>Software will be needed for implementing the tasks that have been mentioned in the Hardware section.
+Additionally, dealing with the language dependent tasks requires software for having scientists with
+a linguistic background collaborating when generating syntax rules and translation memories for
+all spoken languages on Earth.
+
+</font>
+<hr>
+<font size=3>Started: 1997 by <a href="https://wegalink.eu" target=_top>
+Eckhard Kantz</a></font>
+
+</font>
+</body>
+</html>
